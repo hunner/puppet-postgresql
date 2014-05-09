@@ -8,6 +8,7 @@ group :development, :test do
   gem 'beaker',                  :require => false
   gem 'beaker-rspec',            :require => false
   gem 'serverspec',              :require => false
+  gem 'pry',                     :require => false
 end
 
 if puppetversion = ENV['PUPPET_GEM_VERSION']

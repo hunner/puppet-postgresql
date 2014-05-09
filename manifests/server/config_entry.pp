@@ -32,6 +32,7 @@ define postgresql::server::config_entry (
   if $::osfamily == 'RedHat' {
     if $::operatingsystemrelease =~ /^7/ {
       if $name == 'port' {
+        # Template uses $value
         file { 'systemd-port-override':
           ensure  => present,
           path    => '/etc/systemd/system/postgresql.service',
@@ -49,7 +50,19 @@ define postgresql::server::config_entry (
       }
     } else {
       if $name == 'port' {
-        augeas { 'override PGPORT in /etc/sysconfig/pgsql/postgresql':
+        $service_name   = $postgresql::server::service_name
+        $service_status = $postgresql::server::service_status
+        $service_stop   = $postgresql::server::service_stop
+
+        exec { 'postgresql_stop':
+          path      => '/usr/bin:/usr/sbin:/bin:/sbin',
+          command   => $service_stop,
+          onlyif    => $service_status,
+          unless    => "grep 'PGPORT=${value}' /etc/sysconfig/pgsql/postgresql",
+          logoutput => 'on_failure',
+          require   => File['/etc/sysconfig/pgsql/postgresql'],
+        }
+        -> augeas { 'override PGPORT in /etc/sysconfig/pgsql/postgresql':
           lens    => 'Shellvars.lns',
           incl    => '/etc/sysconfig/pgsql/*',
           context => '/files/etc/sysconfig/pgsql/postgresql',

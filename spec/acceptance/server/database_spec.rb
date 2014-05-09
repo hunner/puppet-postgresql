@@ -6,7 +6,7 @@ describe 'postgresql::server::database:', :unless => UNSUPPORTED_PLATFORMS.inclu
     apply_manifest("class { 'postgresql::server': ensure => absent }", :catch_failures => true)
   end
 
-  it 'should idempotently create a db that we can connect to' do
+  it 'idempotently creates a db that we can connect to' do
     begin
       pp = <<-EOS.unindent
         $db = 'postgresql_test_db'
@@ -26,29 +26,56 @@ describe 'postgresql::server::database:', :unless => UNSUPPORTED_PLATFORMS.inclu
       psql('--command="drop database postgresql_test_db" postgres')
     end
   end
-end
+  context 'transition to non-default port' do
+    it 'idempotently creates a db that we can connect to' do
+      begin
+        pp = <<-EOS.unindent
+          $db = 'postgresql_test_db'
+          class { 'postgresql::server':
+            port => 5433,
+          }
 
-describe 'postgresql::server::database: alternate port', :unless => UNSUPPORTED_PLATFORMS.include?(fact('osfamily')) do
-  it 'should idempotently create a db on a non-default port that we can connect to' do
-    begin
-      pp = <<-EOS.unindent
-        $db = 'postgresql_test_db'
-        class { 'postgresql::server':
-          port => 5433,
-        }
+          postgresql::server::database { $db: }
+        EOS
 
-        postgresql::server::database { $db: }
-      EOS
+        apply_manifest(pp, :catch_failures => true)
+        apply_manifest(pp, :catch_changes => true)
 
-      apply_manifest(pp, :catch_failures => true)
-      apply_manifest(pp, :catch_changes => true)
-
-      psql('--command="select datname from pg_database" --port=5433 postgresql_test_db') do |r|
-        expect(r.stdout).to match(/postgresql_test_db/)
-        expect(r.stderr).to eq('')
+        psql('--command="select datname from pg_database" --port=5433 postgresql_test_db') do |r|
+          expect(r.stdout).to match(/postgresql_test_db/)
+          expect(r.stderr).to eq('')
+        end
+      ensure
+        psql('--command="drop database postgresql_test_db" --port=5433 postgres')
       end
-    ensure
-      psql('--command="drop database postgresql_test_db" --port=5433 postgres')
+    end
+  end
+  context 'provision with a non-default port' do
+    before :all do
+      # Cleanup before tests run
+      apply_manifest("class { 'postgresql::server': ensure => absent }", :catch_failures => true)
+    end
+    it 'idempotently creates a db that we can connect to' do
+      begin
+        pp = <<-EOS.unindent
+          $db = 'postgresql_test_db'
+          class { 'postgresql::server':
+            port => 5433,
+          }
+
+          postgresql::server::database { $db: }
+        EOS
+
+        apply_manifest(pp, :catch_failures => true)
+        apply_manifest(pp, :catch_changes => true)
+
+        psql('--command="select datname from pg_database" --port=5433 postgresql_test_db') do |r|
+          expect(r.stdout).to match(/postgresql_test_db/)
+          expect(r.stderr).to eq('')
+        end
+      ensure
+        psql('--command="drop database postgresql_test_db" --port=5433 postgres')
+      end
     end
   end
 end

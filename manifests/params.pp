@@ -57,7 +57,14 @@ class postgresql::params inherits postgresql::globals {
       }
       $psql_path            = pick($psql_path, "${bindir}/psql")
 
-      $service_status      = $service_status
+      $service_status      = $::operatingsystemrelease ? {
+        /^7\./  => pick($service_status, "/bin/systemctl status postgresql.service"),
+        default => pick($service_status, "/etc/init.d/${service_name} status"),
+      }
+      $service_stop        = $::operatingsystemrelease ? {
+        /^7\./  => pick($service_stop, "/bin/systemctl stop postgresql.service"),
+        default => pick($service_stop, "/etc/init.d/${service_name} stop"),
+      }
       $perl_package_name   = pick($perl_package_name, 'perl-DBD-Pg')
       $python_package_name = pick($python_package_name, 'python-psycopg2')
 

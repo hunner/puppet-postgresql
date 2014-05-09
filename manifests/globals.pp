@@ -16,6 +16,7 @@ class postgresql::globals (
   $service_name         = undef,
   $service_provider     = undef,
   $service_status       = undef,
+  $service_stop         = undef,
   $default_database     = undef,
 
   $initdb_path          = undef,

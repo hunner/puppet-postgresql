@@ -75,7 +75,7 @@ RSpec.configure do |c|
       end
       if fact('osfamily') == 'RedHat'
         shell('yum -y install policycoreutils-python')
-        shell('semanage port -a -t postgresql_port_t -p tcp 5433')
+        shell('semanage port -a -t postgresql_port_t -p tcp 5433', { :acceptable_exit_codes => [0,1] })
       end
       on host, puppet('module','install','puppetlabs-stdlib'), { :acceptable_exit_codes => [0,1] }
       on host, puppet('module','install','puppetlabs-firewall'), { :acceptable_exit_codes => [0,1] }
